@@ -4,27 +4,27 @@ const app = express();
 expressWs(app);
 const redis = require("redis");
 const publisher = redis.createClient({
-  url: "redis://redis-user:redis-password@redis:6379",
+  url: "redis://redis:6379",
 });
-const subscriber = client.duplicate();
-await publisher.connect();
-await subscriber.connect();
-
-await subscriber.subscribe("messages", (message) => {
-  console.log(message);
-  const awss = expressWs.getWss("/chat");
-  awss.clients.forEach((client) => {
-    console.log(client);
-    client.send(message);
-  });
-});
+const subscriber = publisher.duplicate();
 
 app.get("/chat", (req, res, next) => {
   console.log(req.query);
   res.end();
 });
 
-app.ws("/chat", function (ws, req) {
+app.ws("/chat", async function (ws, req) {
+  await publisher.connect();
+  await subscriber.connect();
+  await subscriber.subscribe("messages", (message) => {
+    console.log(message);
+    const awss = expressWs.getWss("/chat");
+    awss.clients.forEach((client) => {
+      console.log(client);
+      client.send(message);
+    });
+  });
+
   ws.on("message", async function (msg) {
     console.log("msg");
     const message = {

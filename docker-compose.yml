@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  server:
+    build:
+      context: .
+    volumes:
+      - .:/usr/src/app
+    command: npm start
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+    environment:
+      NODE_ENV: development
+  redis:
+    image: redis:6.0
