@@ -11,10 +11,16 @@ services:
       - '3000:3000'
     depends_on:
       - redis
+      - mongodb
     environment:
       NODE_ENV: development
   redis:
     image: redis:6.0
+  mongodb:
+    image: mongo:6.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mongo_pass
 
 volumes:
   node_modules:

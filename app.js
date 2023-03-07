@@ -2,7 +2,8 @@ const express = require('express');
 const expressWs = require('express-ws');
 const morgan = require('morgan');
 
-const messageRoutes = require('./routes/messageRoutes');
+const messageRouter = require('./routes/messageRoutes');
+const userRouter = require('./routes/userRoutes');
 
 const app = express();
 const wsInstance = expressWs(app);
@@ -40,6 +41,7 @@ app.ws('/chat', async function (ws, req) {
   });
 });
 
-app.use('/messages', messageRoutes);
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/messages', messageRouter);
 
 module.exports = app;
