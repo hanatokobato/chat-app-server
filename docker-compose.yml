@@ -7,6 +7,7 @@ services:
       - .:/usr/src/app
       - node_modules:/usr/src/app/node_modules
     command: npm start
+    entrypoint: ./docker-entrypoint.sh
     ports:
       - '3000:3000'
     depends_on:
@@ -17,10 +18,12 @@ services:
   redis:
     image: redis:6.0
   mongodb:
-    image: mongo:6.0
+    image: mongo:5.0
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: mongo_pass
+    ports:
+      - '27017:27017'
 
 volumes:
   node_modules:

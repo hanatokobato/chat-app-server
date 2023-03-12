@@ -2,12 +2,14 @@ const express = require('express');
 const expressWs = require('express-ws');
 const morgan = require('morgan');
 
+const AppError = require('./utils/appError');
 const messageRouter = require('./routes/messageRoutes');
 const userRouter = require('./routes/userRoutes');
 
 const app = express();
 const wsInstance = expressWs(app);
 const redis = require('redis');
+const errorController = require('./controllers/errorController');
 
 const publisher = redis.createClient({
   url: 'redis://redis:6379',
@@ -19,6 +21,8 @@ subscriber.connect();
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+app.use(express.json());
 
 app.ws('/chat', async function (ws, req) {
   await subscriber.subscribe('messages', (message) => {
@@ -43,5 +47,11 @@ app.ws('/chat', async function (ws, req) {
 
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/messages', messageRouter);
+
+app.all('*', (req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+app.use(errorController);
 
 module.exports = app;
