@@ -1,5 +1,6 @@
 const User = require('./../models/userModel');
 const jwt = require('jsonwebtoken');
+const { promisify } = require('util');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('../utils/appError');
 
@@ -62,4 +63,30 @@ exports.login = catchAsync(async (req, res, next) => {
     status: 'success',
     token,
   });
+});
+
+exports.protect = catchAsync(async (req, res, next) => {
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookie.jwt) {
+    token = req.cookie.jwt;
+  }
+
+  if (!token) return next(new AppError('Please log in and try again!', 401));
+
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) return next(new AppError('The token is invalid!', 401));
+
+  if (currentUser.changePasswordAfter(decoded.iat)) {
+    return next(new AppError('Password changed! Please log in again.', 401));
+  }
+
+  req.currentUser = currentUser;
+  next();
 });

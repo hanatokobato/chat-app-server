@@ -57,6 +57,19 @@ userSchema.methods.isValidPassword = async function (
   return await bcrypt.compare(providedPassword, userPassword);
 };
 
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimeStamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+
+    return changedTimeStamp > JWTTimestamp;
+  }
+
+  return false;
+};
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

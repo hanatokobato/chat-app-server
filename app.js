@@ -1,6 +1,7 @@
 const express = require('express');
 const expressWs = require('express-ws');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 
 const AppError = require('./utils/appError');
 const messageRouter = require('./routes/messageRoutes');
@@ -23,6 +24,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.ws('/chat', async function (ws, req) {
   await subscriber.subscribe('messages', (message) => {
