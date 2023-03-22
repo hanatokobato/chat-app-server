@@ -2,13 +2,35 @@ const express = require('express');
 const expressWs = require('express-ws');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const cors = require('cors');
 
 const AppError = require('./utils/appError');
 const messageRouter = require('./routes/messageRoutes');
 const userRouter = require('./routes/userRoutes');
+const authRouter = require('./routes/authRoutes');
+const { wsProtect } = require('./controllers/authController');
 
 const app = express();
-const wsInstance = expressWs(app);
+
+app.use(
+  cors({
+    credentials: true,
+    origin: 'http://localhost:3001',
+  })
+);
+
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
+app.use(express.json());
+app.use(cookieParser());
+
+const wsInstance = expressWs(app, null, {
+  wsOptions: {
+    verifyClient: wsProtect,
+  },
+});
 const redis = require('redis');
 const errorController = require('./controllers/errorController');
 
@@ -19,34 +41,29 @@ const subscriber = publisher.duplicate();
 publisher.connect();
 subscriber.connect();
 
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
-
-app.use(express.json());
-app.use(cookieParser());
-
-app.ws('/chat', async function (ws, req) {
-  await subscriber.subscribe('messages', (message) => {
-    console.log(message);
-    const awss = wsInstance.getWss('/chat');
-    awss.clients.forEach((client) => {
-      client.send(message);
-    });
+subscriber.subscribe('messages', (message) => {
+  console.log(message);
+  const awss = wsInstance.getWss('/chat');
+  awss.clients.forEach((client) => {
+    client.send(message);
   });
+});
 
+app.ws('/chat', function (ws, req) {
   ws.on('message', async function (msg) {
-    console.log('msg');
+    const currentUser = req.currentUser;
     const message = {
-      id: '123456',
+      id: currentUser._id,
       message: msg,
-      user_id: 1,
+      user_id: currentUser._id,
+      user_name: currentUser.name,
       timestamp: new Date(),
     };
     await publisher.publish('messages', JSON.stringify(message));
   });
 });
 
+app.use('/api/v1', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/messages', messageRouter);
 

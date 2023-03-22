@@ -83,10 +83,43 @@ exports.protect = catchAsync(async (req, res, next) => {
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) return next(new AppError('The token is invalid!', 401));
 
-  if (currentUser.changePasswordAfter(decoded.iat)) {
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(new AppError('Password changed! Please log in again.', 401));
   }
 
   req.currentUser = currentUser;
   next();
 });
+
+exports.wsProtect = async (info, cb) => {
+  let token;
+  if (
+    info.req.headers.authorization &&
+    info.req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = info.req.headers.authorization.split(' ')[1];
+  } else if (info.req.headers.cookie) {
+    info.req.headers.cookie.split(';').forEach(function (cookie) {
+      const parts = cookie.match(/(.*?)=(.*)$/);
+      const name = parts[1].trim();
+      const value = (parts[2] || '').trim();
+      if (name === 'jwt') {
+        token = value;
+      }
+    });
+  }
+
+  if (!token) return cb(false, 401, 'Unauthorized');
+
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) return cb(false, 401, 'Unauthorized');
+
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
+    return cb(false, 401, 'Unauthorized');
+  }
+
+  info.req.currentUser = currentUser;
+  cb(true);
+};
