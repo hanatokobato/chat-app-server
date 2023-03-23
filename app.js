@@ -3,12 +3,16 @@ const expressWs = require('express-ws');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const redis = require('redis');
 
 const AppError = require('./utils/appError');
 const messageRouter = require('./routes/messageRoutes');
 const userRouter = require('./routes/userRoutes');
 const authRouter = require('./routes/authRoutes');
+const roomRouter = require('./routes/roomRouters');
 const { wsProtect } = require('./controllers/authController');
+const errorController = require('./controllers/errorController');
+const { joinChat, broadcastMessage } = require('./controllers/chatController');
 
 const app = express();
 
@@ -31,8 +35,6 @@ const wsInstance = expressWs(app, null, {
     verifyClient: wsProtect,
   },
 });
-const redis = require('redis');
-const errorController = require('./controllers/errorController');
 
 const publisher = redis.createClient({
   url: 'redis://redis:6379',
@@ -41,30 +43,16 @@ const subscriber = publisher.duplicate();
 publisher.connect();
 subscriber.connect();
 
-subscriber.subscribe('messages', (message) => {
-  console.log(message);
-  const awss = wsInstance.getWss('/chat');
-  awss.clients.forEach((client) => {
-    client.send(message);
-  });
-});
+subscriber.subscribe(
+  'messages',
+  broadcastMessage.bind({ wsInstance: wsInstance })
+);
 
-app.ws('/chat', function (ws, req) {
-  ws.on('message', async function (msg) {
-    const currentUser = req.currentUser;
-    const message = {
-      id: currentUser._id,
-      message: msg,
-      user_id: currentUser._id,
-      user_name: currentUser.name,
-      timestamp: new Date(),
-    };
-    await publisher.publish('messages', JSON.stringify(message));
-  });
-});
+app.ws('/chat', joinChat.bind({ publisher: publisher }));
 
 app.use('/api/v1', authRouter);
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/rooms', roomRouter);
 app.use('/api/v1/messages', messageRouter);
 
 app.all('*', (req, res, next) => {

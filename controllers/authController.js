@@ -58,11 +58,7 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Incorrect Email or Passowrd!', '401'));
   }
 
-  const token = signToken(user.id);
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -72,8 +68,8 @@ exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
-  } else if (req.cookie.jwt) {
-    token = req.cookie.jwt;
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
 
   if (!token) return next(new AppError('Please log in and try again!', 401));
