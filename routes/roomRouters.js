@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const roomController = require('./../controllers/roomController');
 const authController = require('./../controllers/authController');
-const messageController = require('./../controllers/messageController');
 
-router.route('/').get(authController.protect, messageController.getMessages);
+router.route('/').get(authController.protect, roomController.getRooms);
 
 module.exports = router;
