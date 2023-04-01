@@ -7,7 +7,7 @@ const messageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    user: {
+    sender: {
       name: {
         type: String,
         required: true,
@@ -19,6 +19,14 @@ const messageSchema = new mongoose.Schema(
     },
     room: {
       _id: mongoose.ObjectId,
+    },
+    receiver: {
+      name: {
+        type: String,
+      },
+      _id: {
+        type: mongoose.ObjectId,
+      },
     },
   },
   { timestamps: true }
