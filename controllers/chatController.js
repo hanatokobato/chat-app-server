@@ -6,7 +6,7 @@ exports.joinChat = function (ws, req) {
     const currentUser = req.currentUser;
     const message = await Message.create({
       message: msg,
-      user: {
+      sender: {
         name: currentUser.name,
         _id: currentUser._id,
       },
