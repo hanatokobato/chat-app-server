@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const ChatRoom = require('../models/chatRoom');
 const User = require('../models/userModel');
 const Message = require('../models/message');
+const Emoji = require('../models/emoji');
 
 dotenv.config({ path: './config.env' });
 
@@ -17,11 +18,13 @@ mongoose
 const chatRooms = JSON.parse(
   fs.readFileSync(`${__dirname}/rooms.json`, 'utf-8')
 );
+const emojis = JSON.parse(fs.readFileSync(`${__dirname}/emojis.json`, 'utf-8'));
 
 // IMPORT DATA INTO DB
 const importData = async () => {
   try {
     await ChatRoom.create(chatRooms);
+    await Emoji.create(emojis);
     console.log('Data successfully loaded!');
   } catch (err) {
     console.log(err);

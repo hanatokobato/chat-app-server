@@ -10,6 +10,8 @@ const messageRouter = require('./routes/messageRoutes');
 const userRouter = require('./routes/userRoutes');
 const authRouter = require('./routes/authRoutes');
 const roomRouter = require('./routes/roomRouters');
+const emojiRouter = require('./routes/emojiRoutes');
+const reactionRouter = require('./routes/reactionRoutes');
 const { wsProtect } = require('./controllers/authController');
 const errorController = require('./controllers/errorController');
 const { joinChat, broadcastMessage } = require('./controllers/chatController');
@@ -28,6 +30,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use(express.json());
+app.use(express.static(`${__dirname}/public`));
 app.use(cookieParser());
 
 const wsInstance = expressWs(app, null, {
@@ -54,6 +57,8 @@ app.use('/api/v1', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/rooms', roomRouter);
 app.use('/api/v1/messages', messageRouter);
+app.use('/api/v1/emojis', emojiRouter);
+app.use('/api/v1/reactions', reactionRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Love",
+    "value": "love",
+    "src": "/images/emoji/love.png",
+    "alt": "😍"
+  },
+  {
+    "name": "Haha",
+    "value": "haha",
+    "src": "/images/emoji/haha.png",
+    "alt": "😆"
+  },
+  {
+    "name": "Wow",
+    "value": "wow",
+    "src": "/images/emoji/wow.png",
+    "alt": "😮"
+  },
+  {
+    "name": "Cry",
+    "value": "cry",
+    "src": "/images/emoji/cry.png",
+    "alt": "😢"
+  },
+  {
+    "name": "Angry",
+    "value": "angry",
+    "src": "/images/emoji/angry.png",
+    "alt": "😠"
+  },
+  {
+    "name": "Like",
+    "value": "like",
+    "src": "/images/emoji/like.png",
+    "alt": "👍"
+  },
+  {
+    "name": "Dislike",
+    "value": "dislike",
+    "src": "/images/emoji/dislike.png",
+    "alt": "👎"
+  }
+]

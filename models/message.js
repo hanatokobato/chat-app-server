@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const validator = require('validator');
 
 const messageSchema = new mongoose.Schema(
   {
@@ -29,8 +28,14 @@ const messageSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+messageSchema.virtual('reactions', {
+  ref: 'Reaction',
+  foreignField: 'message',
+  localField: '_id',
+});
 
 const Message = mongoose.model('Message', messageSchema);
 
