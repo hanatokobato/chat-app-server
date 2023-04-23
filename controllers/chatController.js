@@ -1,7 +1,28 @@
 const Message = require('../models/message');
 
-exports.joinChat = function (ws, req) {
-  const publisher = this.publisher;
+exports.joinRoom = function (ws, req, { wsInstance }) {
+  const awss = wsInstance.getWss(`/rooms/${req.params.id}`);
+  const publisher = req.publisher;
+  ws.currentUser = req.currentUser;
+  ws.roomId = req.params.id;
+  const users = [];
+  awss.clients.forEach((client) => {
+    if (
+      client.currentUser._id === req.currentUser._id ||
+      client.roomId !== req.params.id
+    )
+      return;
+
+    client.send(
+      JSON.stringify({
+        eventType: 'joining',
+        eventData: { user: req.currentUser },
+      })
+    );
+    users.push(client.currentUser);
+  });
+  ws.send(JSON.stringify({ eventType: 'users', eventData: { users } }));
+
   ws.on('message', async function (msg) {
     const currentUser = req.currentUser;
     const message = await Message.create({
@@ -11,14 +32,33 @@ exports.joinChat = function (ws, req) {
         _id: currentUser._id,
       },
     });
-    publisher.publish('messages', JSON.stringify(message));
+    publisher.publish(
+      'rooms',
+      JSON.stringify({ roomId: req.params.id, message })
+    );
+  });
+  ws.on('close', async function (code, reason) {
+    awss.clients.forEach((client) => {
+      if (client.currentUser._id === req.currentUser._id) return;
+
+      client.send(
+        JSON.stringify({
+          eventType: 'leaving',
+          eventData: { user: req.currentUser },
+        })
+      );
+    });
   });
 };
 
-exports.broadcastMessage = function (message) {
-  const wsInstance = this.wsInstance;
-  const awss = wsInstance.getWss('/chat');
+exports.broadcastRoom = function (message, { wsInstance }) {
+  const formattedMsg = JSON.parse(message);
+
+  const awss = wsInstance.getWss(`/rooms/${formattedMsg.roomId}`);
   awss.clients.forEach((client) => {
-    client.send(message);
+    if (formattedMsg.message.sender._id !== client.currentUser._id.toString())
+      client.send(
+        JSON.stringify({ eventType: 'message', eventData: formattedMsg })
+      );
   });
 };

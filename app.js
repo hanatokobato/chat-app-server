@@ -14,30 +14,7 @@ const emojiRouter = require('./routes/emojiRoutes');
 const reactionRouter = require('./routes/reactionRoutes');
 const { wsProtect } = require('./controllers/authController');
 const errorController = require('./controllers/errorController');
-const { joinChat, broadcastMessage } = require('./controllers/chatController');
-
-const app = express();
-
-app.use(
-  cors({
-    credentials: true,
-    origin: 'http://localhost:3001',
-  })
-);
-
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
-
-app.use(express.json());
-app.use(express.static(`${__dirname}/public`));
-app.use(cookieParser());
-
-const wsInstance = expressWs(app, null, {
-  wsOptions: {
-    verifyClient: wsProtect,
-  },
-});
+const { broadcastRoom, joinRoom } = require('./controllers/chatController');
 
 const publisher = redis.createClient({
   url: 'redis://redis:6379',
@@ -46,12 +23,39 @@ const subscriber = publisher.duplicate();
 publisher.connect();
 subscriber.connect();
 
-subscriber.subscribe(
-  'messages',
-  broadcastMessage.bind({ wsInstance: wsInstance })
-);
+const app = express();
+const wsInstance = expressWs(app, null, {
+  wsOptions: {
+    verifyClient: wsProtect,
+  },
+});
 
-app.ws('/chat', joinChat.bind({ publisher: publisher }));
+app.use((req, res, next) => {
+  req.wsInstance = wsInstance;
+  req.publisher = publisher;
+  req.subscriber = subscriber;
+
+  next();
+});
+app.use(
+  cors({
+    credentials: true,
+    origin: 'http://localhost:3001',
+  })
+);
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+app.use(express.json());
+app.use(express.static(`${__dirname}/public`));
+app.use(cookieParser());
+
+subscriber.subscribe('rooms', (message) =>
+  broadcastRoom(message, { wsInstance })
+);
+app.ws(`/rooms/:id`, (ws, req) => {
+  joinRoom(ws, req, { wsInstance });
+});
 
 app.use('/api/v1', authRouter);
 app.use('/api/v1/users', userRouter);
