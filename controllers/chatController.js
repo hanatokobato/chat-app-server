@@ -23,19 +23,30 @@ exports.joinRoom = function (ws, req, { wsInstance }) {
   });
   ws.send(JSON.stringify({ eventType: 'users', eventData: { users } }));
 
-  ws.on('message', async function (msg) {
+  ws.on('message', async function (event) {
     const currentUser = req.currentUser;
-    const message = await Message.create({
-      message: msg,
-      sender: {
-        name: currentUser.name,
-        _id: currentUser._id,
-      },
-    });
-    publisher.publish(
-      'rooms',
-      JSON.stringify({ roomId: req.params.id, message })
-    );
+    const eventData = JSON.parse(event);
+    let broadcastData;
+    switch (eventData.type) {
+      case 'typing':
+        broadcastData = {
+          ...eventData,
+          senderId: currentUser._id,
+          roomId: req.params.id,
+        };
+        break;
+      case 'seen':
+        broadcastData = {
+          ...eventData,
+          senderId: currentUser._id,
+          roomId: req.params.id,
+        };
+        break;
+    }
+
+    if (broadcastData) {
+      publisher.publish('rooms', JSON.stringify(broadcastData));
+    }
   });
   ws.on('close', async function (code, reason) {
     awss.clients.forEach((client) => {
@@ -56,9 +67,30 @@ exports.broadcastRoom = function (message, { wsInstance }) {
 
   const awss = wsInstance.getWss(`/rooms/${formattedMsg.roomId}`);
   awss.clients.forEach((client) => {
-    if (formattedMsg.message.sender._id !== client.currentUser._id.toString())
-      client.send(
-        JSON.stringify({ eventType: 'message', eventData: formattedMsg })
-      );
+    switch (formattedMsg.type) {
+      case 'message':
+        if (
+          formattedMsg.message.sender._id !== client.currentUser._id.toString()
+        ) {
+          client.send(
+            JSON.stringify({ eventType: 'message', eventData: formattedMsg })
+          );
+        }
+        break;
+      case 'typing':
+        if (formattedMsg.receiverId === client.currentUser._id.toString()) {
+          client.send(
+            JSON.stringify({ eventType: 'typing', eventData: formattedMsg })
+          );
+        }
+        break;
+      case 'seen':
+        if (formattedMsg.receiverId === client.currentUser._id.toString()) {
+          client.send(
+            JSON.stringify({ eventType: 'seen', eventData: formattedMsg })
+          );
+        }
+        break;
+    }
   });
 };

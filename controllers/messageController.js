@@ -96,13 +96,35 @@ exports.createMessage = catchAsync(async (req, res, next) => {
   const createdMessage = await Message.create(attr);
   req.publisher.publish(
     'rooms',
-    JSON.stringify({ roomId: createdMessage.room._id, message: createdMessage })
+    JSON.stringify({
+      roomId: createdMessage.room._id,
+      message: createdMessage,
+      type: 'message',
+    })
   );
 
   res.status(201).json({
     status: 'success',
     data: {
       message: createdMessage,
+    },
+  });
+});
+
+exports.updateMessage = catchAsync(async (req, res, next) => {
+  const message = await Message.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!message) {
+    return next(new AppError('No document found with that ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      message,
     },
   });
 });

@@ -8,4 +8,8 @@ router
   .get(authController.protect, messageController.getMessages)
   .post(authController.protect, messageController.createMessage);
 
+router
+  .route('/:id')
+  .put(authController.protect, messageController.updateMessage);
+
 module.exports = router;

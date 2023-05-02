@@ -27,6 +27,9 @@ const messageSchema = new mongoose.Schema(
         type: mongoose.ObjectId,
       },
     },
+    seenAt: {
+      type: Date,
+    },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
