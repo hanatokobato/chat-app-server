@@ -19,7 +19,6 @@ exports.getRooms = catchAsync(async (req, res, next) => {
 });
 
 exports.roomDetail = catchAsync(async (req, res, next) => {
-  console.log(req.params);
   const room = await ChatRoom.findById(req.params.id);
 
   res.status(200).json({

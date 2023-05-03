@@ -1,14 +1,72 @@
 const catchAsync = require('../utils/catchAsync');
 const Message = require('../models/message');
+const User = require('../models/userModel');
+const ObjectId = require('mongoose').Types.ObjectId;
 
 exports.getMessages = catchAsync(async (req, res, next) => {
-  const messages = await Message.find({
-    'room._id': req.query.room,
-  }).populate('reactions');
+  const page = req.query.page * 1 || 1;
+  const limit = req.query.perPage || 10;
+  const skip = (page - 1) * limit;
+
+  let messages;
+  let totalMessage;
+  if (ObjectId.isValid(req.query.room)) {
+    totalMessage = await Message.find({
+      'room._id': req.query.room,
+    }).countDocuments();
+    if (skip > totalMessage) throw new Error('This page does not exist.');
+
+    messages = await Message.find({
+      'room._id': req.query.room,
+    })
+      .populate('reactions')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limit);
+  } else {
+    const participants = req.query.room.split('__');
+    const target = participants.find(
+      (p) => p !== req.currentUser._id.toString()
+    );
+
+    totalMessage = await Message.find({
+      $or: [
+        {
+          'sender._id': req.currentUser._id,
+          'receiver._id': target,
+        },
+        {
+          'sender._id': target,
+          'receiver._id': req.currentUser._id,
+        },
+      ],
+    }).countDocuments();
+    if (skip > totalMessage) throw new Error('This page does not exist.');
+
+    messages = await Message.find({
+      $or: [
+        {
+          'sender._id': req.currentUser._id,
+          'receiver._id': target,
+        },
+        {
+          'sender._id': target,
+          'receiver._id': req.currentUser._id,
+        },
+      ],
+    })
+      .populate('reactions')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limit);
+  }
 
   res.status(200).json({
     status: 'success',
-    result: messages.length,
+    result: totalMessage,
+    currentPage: page,
+    perPage: limit,
+    lastPage: Math.ceil(totalMessage / limit),
     data: {
       messages,
     },
@@ -27,18 +85,46 @@ exports.createMessage = catchAsync(async (req, res, next) => {
     },
   };
   if (req.body.receiver) {
+    const receiver = await User.findById(req.body.receiver);
+
     attr.receiver = {
-      _id: req.body.receiver._id,
-      name: req.body.receiver.name,
+      _id: receiver._id,
+      name: receiver.name,
     };
   }
 
   const createdMessage = await Message.create(attr);
+  req.publisher.publish(
+    'rooms',
+    JSON.stringify({
+      roomId: createdMessage.room._id,
+      message: createdMessage,
+      type: 'message',
+    })
+  );
 
   res.status(201).json({
     status: 'success',
     data: {
       message: createdMessage,
+    },
+  });
+});
+
+exports.updateMessage = catchAsync(async (req, res, next) => {
+  const message = await Message.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!message) {
+    return next(new AppError('No document found with that ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      message,
     },
   });
 });
