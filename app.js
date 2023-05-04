@@ -17,7 +17,7 @@ const errorController = require('./controllers/errorController');
 const { broadcastRoom, joinRoom } = require('./controllers/chatController');
 
 const publisher = redis.createClient({
-  url: 'redis://redis:6379',
+  url: process.env.REDIS_URL,
 });
 const subscriber = publisher.duplicate();
 publisher.connect();
