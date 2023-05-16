@@ -11,6 +11,9 @@ const messageSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+      photo: {
+        type: String,
+      },
       _id: {
         type: mongoose.ObjectId,
         required: true,
