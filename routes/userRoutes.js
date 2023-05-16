@@ -1,7 +1,6 @@
 const express = require('express');
 const userController = require('./../controllers/userController');
 const authController = require('./../controllers/authController');
-
 const router = express.Router();
 
 router.post('/api/v1/signup', authController.signup);
@@ -15,7 +14,12 @@ router
 router
   .route('/:id')
   .get(userController.getUser)
-  .patch(userController.updateUser)
+  .patch(
+    authController.protect,
+    userController.uploadUserPhoto,
+    userController.resizeUserPhoto,
+    userController.updateUser
+  )
   .delete(userController.deleteUser);
 
 module.exports = router;

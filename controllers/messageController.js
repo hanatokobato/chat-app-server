@@ -79,6 +79,7 @@ exports.createMessage = catchAsync(async (req, res, next) => {
     sender: {
       _id: req.currentUser._id,
       name: req.currentUser.name,
+      photo: req.currentUser.photoUrl,
     },
     room: {
       _id: req.body.room,
@@ -90,6 +91,7 @@ exports.createMessage = catchAsync(async (req, res, next) => {
     attr.receiver = {
       _id: receiver._id,
       name: receiver.name,
+      photo: receiver.photoUrl,
     };
   }
 
