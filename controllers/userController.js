@@ -4,8 +4,12 @@ const multer = require('multer');
 const sharp = require('sharp');
 const fs = require('fs');
 const AppError = require('../utils/appError');
+const { cloudinaryStorage } = require('../utils/cloudinary');
 
-const multerStorage = multer.memoryStorage();
+const multerStorage =
+  process.env.NODE_ENV === 'production'
+    ? cloudinaryStorage
+    : multer.memoryStorage();
 const multerFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image')) {
     cb(null, true);
@@ -23,7 +27,7 @@ const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
 exports.uploadUserPhoto = upload.single('photo');
 
 exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
-  if (!req.file) return next();
+  if (!req.file || process.env.NODE_ENV !== 'development') return next();
 
   req.file.filename = `user-${req.currentUser._id}-${Date.now()}.jpeg`;
 
@@ -75,7 +79,9 @@ exports.createUser = (req, res) => {
 
 exports.updateUser = catchAsync(async (req, res) => {
   const filteredBody = filterObj(req.body, 'name');
-  if (req.file) filteredBody.photo = req.file.filename;
+  if (req.file)
+    filteredBody.photo =
+      process.env.NODE_ENV === 'production' ? req.file.path : req.file.filename;
 
   console.log(req.file);
   const updatedUser = await User.findByIdAndUpdate(
