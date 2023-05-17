@@ -5,6 +5,9 @@ const sharp = require('sharp');
 const fs = require('fs');
 const AppError = require('../utils/appError');
 const { cloudinaryStorage } = require('../utils/cloudinary');
+const Queue = require('bull');
+
+const workQueue = new Queue('userPhotoUpdating', process.env.REDIS_URL);
 
 const multerStorage =
   process.env.NODE_ENV === 'production'
@@ -92,6 +95,9 @@ exports.updateUser = catchAsync(async (req, res) => {
       runValidators: true,
     }
   );
+
+  if (req.file)
+    workQueue.add({ userId: updatedUser._id, photo: updatedUser.photoUrl });
 
   res.status(200).json({
     status: 'success',
