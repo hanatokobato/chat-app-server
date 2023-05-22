@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  server:
+  server: &nodejs
     build:
       context: .
     volumes:
@@ -23,7 +23,20 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: mongo_pass
     ports:
-      - '27017:27017'
+      - '27018:27017'
+  worker:
+    <<: *nodejs
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    command: npm run start:worker
+    entrypoint: ./docker-entrypoint.sh
+    depends_on:
+      - redis
+      - mongodb
+    environment:
+      NODE_ENV: development
+    ports: []
 
 volumes:
   node_modules:
