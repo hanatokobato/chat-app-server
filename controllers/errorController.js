@@ -1,5 +1,12 @@
+const mongoose = require('mongoose');
+
 module.exports = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
+  if (err instanceof mongoose.Error.ValidationError) {
+    err.statusCode = 400;
+    err.message = err.errors[Object.keys(err.errors)[0]].properties.message;
+  } else {
+    err.statusCode = err.statusCode || 500;
+  }
   err.status = err.status || 'error';
 
   let jsonResponse = {

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
+const uniqueValidator = require('mongoose-unique-validator');
 
 const userSchema = new mongoose.Schema(
   {
@@ -44,6 +45,10 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+userSchema.plugin(uniqueValidator, {
+  message: '{PATH} already existed.',
+});
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
