@@ -1,5 +1,3 @@
-const Message = require('../models/message');
-
 exports.joinRoom = function (ws, req, { wsInstance }) {
   const awss = wsInstance.getWss(`/rooms/${req.params.id}`);
   const publisher = req.publisher;
@@ -64,6 +62,7 @@ exports.joinRoom = function (ws, req, { wsInstance }) {
 
 exports.broadcastRoom = function (message, { wsInstance }) {
   const formattedMsg = JSON.parse(message);
+  console.log(formattedMsg);
 
   const awss = wsInstance.getWss(`/rooms/${formattedMsg.roomId}`);
   awss.clients.forEach((client) => {
@@ -88,6 +87,20 @@ exports.broadcastRoom = function (message, { wsInstance }) {
         if (formattedMsg.receiverId === client.currentUser._id.toString()) {
           client.send(
             JSON.stringify({ eventType: 'seen', eventData: formattedMsg })
+          );
+        }
+        break;
+      case 'reaction_created':
+      case 'reaction_updated':
+      case 'reaction_deleted':
+        if (
+          formattedMsg.reaction.user_id !== client.currentUser._id.toString()
+        ) {
+          client.send(
+            JSON.stringify({
+              eventType: formattedMsg.type,
+              eventData: formattedMsg,
+            })
           );
         }
         break;

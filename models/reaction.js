@@ -22,10 +22,15 @@ reactionSchema.pre(/^find/, function (next) {
   this.populate({
     path: 'user',
     select: 'name',
-  }).populate({
-    path: 'emoji',
-    select: 'name',
-  });
+  })
+    .populate({
+      path: 'emoji',
+      select: 'name',
+    })
+    .populate({
+      path: 'message',
+      select: '_id',
+    });
 
   next();
 });
